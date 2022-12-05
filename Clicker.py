@@ -4,15 +4,18 @@ from kivy.uix.button import Button
 from kivy.uix.label import Label
 from kivy.uix.boxlayout import BoxLayout
 
-from threading import Timer # To create "clicks" every second
-
 from sys import exit
+
+from math import floor, ceil, log
+
 
 class Clicker(App):
 
   __BASE_CLICKER_COST = 10
   __BASE_BOT_NET_COST = 100
-  __GROWTH_RATE = 1.5
+  __COST_CHANGER = 1.5 # Due to the logarithms base this constant, lowering *increases* rate of growth
+  __CLICKER_COUNTER_MAX = 1
+  __BOT_NET_COUNTER_MAX = 20/3
 
 
   def __init__(self, *args):
@@ -32,8 +35,9 @@ class Clicker(App):
     self.__bot_net_sell = None
     self.__10_bot_net_sell = None
     self.__calculateSells()
-    
-    self.__buttons_pipe = []
+
+    self.__clicker_counter = Clicker.__CLICKER_COUNTER_MAX
+    self.__bot_net_counter = Clicker.__BOT_NET_COUNTER_MAX
 
   def build(self):
 
@@ -52,9 +56,20 @@ class Clicker(App):
     self.__sell_bot_net_button = Button(text="Sell 1: 0")
     self.__sell_10_bot_net_button = Button(text="Sell 10: 0")
 
-    #for attribute in dir(self): # Lazy solution to writing out all buttons, should probably replace
-      #if "button" in attribute:
-        #self.__getattribute__(attribute).bind(self.__handleButtons)
+    self.__button_associations = {
+      self.__main_button:self.handleMainButton,
+      self.__buy_clicker_button:self.handleBuyClicker,
+      self.__buy_10_clicker_button:self.handleBuy10Clickers,
+      self.__sell_clicker_button:self.handleSellClicker,
+      self.__sell_10_clicker_button:self.handleSell10Clickers,
+      self.__buy_bot_net_button:self.handleBuyBotNet,
+      self.__buy_10_bot_net_button:self.handleBuy10BotNets,
+      self.__sell_bot_net_button:self.handleSellBotNet,
+      self.__sell_10_bot_net_button:self.handleSell10BotNets,
+      }
+
+    for button in self.__button_associations:
+      button.bind(on_press=self.__button_associations[button])
 
     
     clicker_menu_elements = [
@@ -103,93 +118,133 @@ class Clicker(App):
 
     return main_layout
 
-  def mainLoop(self, nap):
-    print("Main Loop")
-    while len(self.__buttons_pipe) > 0:
-      button = self.__buttons_pipe.pop(0)
-      print("Button:", button) # Not printing, fix
-      # Make it handle each individual button
+  def mainLoop(self, delta):
+    self.__updateAttributes()
+    self.__updateLabels()
+    self.__clicker_counter -= delta
+    if self.__clicker_counter <= 0:
+      self.__clicks += self.__clickers
+      self.__clicker_counter = Clicker.__CLICKER_COUNTER_MAX
+    self.__bot_net_counter -= delta
+    if self.__bot_net_counter <= 0:
+      self.__clicks += self.__bot_nets * 10
+      self.__bot_net_counter = Clicker.__BOT_NET_COUNTER_MAX
 
-  def handleButtons(self, instance):
-    self.__buttons_pipe.append(instance)
+  def __updateLabels(self):
+    self.__main_button.text = str(self.__clicks)
+    self.__clickers_label.text = "Clickers: " + str(self.__clickers)
+    self.__bot_nets_label.text = "Bot Nets: " + str(self.__bot_nets)
+    self.__buy_clicker_button.text = "Buy 1: " + str(self.__clicker_cost)
+    self.__buy_10_clicker_button.text = "Buy 10: " + str(self.__10_clicker_cost)
+    self.__sell_clicker_button.text = "Sell 1: " + str(self.__clicker_sell)
+    self.__sell_10_clicker_button.text = "Sell 10: " + str(self.__10_clicker_sell)
+    self.__buy_bot_net_button.text = "Buy 1: " + str(self.__bot_net_cost)
+    self.__buy_10_bot_net_button.text = "Buy 10: " + str(self.__10_bot_net_cost)
+    self.__sell_bot_net_button.text = "Sell 1: " + str(self.__bot_net_sell)
+    self.__sell_10_bot_net_button.text = "Sell 10: " + str(self.__10_bot_net_sell)
 
-  def __handleMainButton(self):
-    self.__click()
+  def handleMainButton(self, button):
+    self.__clicks += 1
 
-  def __handleBuyClicker(self):
+  def handleBuyClicker(self, button):
     if self.__clicks >= self.__clicker_cost:
       self.__clicks -= self.__clicker_cost
       self.__clickers += 1
 
-  def __handleBuy10Clickers(self):
+  def handleBuy10Clickers(self, button):
     if self.__clicks >= self.__10_clicker_cost:
       self.__clicks -= self.__10_clicker_cost
       self.__clickers += 10
 
-  def __handleBuyBotNet(self):
+  def handleBuyBotNet(self, button):
     if self.__clicks >= self.__bot_net_cost:
       self.__clicks -= self.__bot_net_cost
       self.__bot_nets += 1
 
-  def __handleBuy10BotNets(self):
+  def handleBuy10BotNets(self, button):
     if self.__clicks >= self.__10_bot_net_cost:
       self.__clicks -= self.__10_bot_net_cost
       self.__bot_nets += 10
     
-  def __handleSellClicker(self):
+  def handleSellClicker(self, button):
     if self.__clickers >= 1:
       self.__clicks += self.__clicker_sell
       self.__clickers -= 1
 
-  def __handleSell10Clickers(self):
+  def handleSell10Clickers(self, button):
     if self.__clickers >= 10:
       self.__clicks += self.__10_clicker_sell
       self.__clickers -= 10
 
-  def __handleSellBotNet(self):
+  def handleSellBotNet(self, button):
     if self.__bot_nets >= 1:
       self.__clicks += self.__bot_net_sell
       self.__bot_nets -= 1
 
-  def __handleSell10BotNets(self):
+  def handleSell10BotNets(self, button):
     if self.__bot_nets >= 10:
       self.__clicks += self.__10_bot_net_sell
       self.__bot_nets -= 10
-
-  def __click(self):
-    self.__clicks += 1
-
-  def __createTimer(time, function):
-    dummy = Timer(time, function)
-    dummy.start()
 
   def __updateAttributes(self):
     self.__calculateCosts()
     self.__calculateSells()
 
+
+  # Current formula: nth clicker costs 1.5^(n-1) * 10
+  # New suggested formula: nth clicker costs (0.2 log1.5(x) + 1) * 10
+
   def __calculateCosts(self):
-    self.__clicker_cost = Clicker.__GROWTH_RATE ** (self.__clickers - 1) * Clicker.__BASE_CLICKER_COST
-    self.__bot_net_cost = Clicker.__GROWTH_RATE ** (self.__bot_nets - 1) * Clicker.__BASE_BOT_NET_COST
+    #self.__clicker_cost = floor(Clicker.__COST_CHANGER ** (self.__clickers) * Clicker.__BASE_CLICKER_COST)
+    #self.__bot_net_cost = floor(Clicker.__COST_CHANGER ** (self.__bot_nets) * Clicker.__BASE_BOT_NET_COST)
+
+    c = Clicker.__COST_CHANGER
+    x = self.__clickers + 1 # +1 creates one to buy
+    y = self.__bot_nets + 1
+
+    self.__clicker_cost = floor((0.2*x*log(x,c)+1) * Clicker.__BASE_CLICKER_COST)
+    self.__bot_net_cost = floor((0.2*y*log(y,c)+1) * Clicker.__BASE_BOT_NET_COST)
 
     self.__10_clicker_cost = 0
     self.__10_bot_net_cost = 0
-    
+
     for count in range(10):
-      self.__10_clicker_cost += Clicker.__GROWTH_RATE ** (self.__clickers + count - 1) * Clicker.__BASE_CLICKER_COST
-      self.__10_bot_net_cost += Clicker.__GROWTH_RATE ** (self.__bot_nets + count - 1) * Clicker.__BASE_BOT_NET_COST
+      self.__10_clicker_cost += (0.2*x*log(x+count,c)+1) * Clicker.__BASE_CLICKER_COST
+      self.__10_bot_net_cost += (0.2*y*log(y+count,c)+1) * Clicker.__BASE_BOT_NET_COST
+
+    self.__10_clicker_cost = floor(self.__10_clicker_cost)
+    self.__10_bot_net_cost = floor(self.__10_bot_net_cost)
 
   def __calculateSells(self):
-    self.__clicker_sell = 0.75 * Clicker.__GROWTH_RATE ** (self.__clickers - 2) * Clicker.__BASE_CLICKER_COST
-    self.__bot_net_sell = 0.75 * Clicker.__GROWTH_RATE ** (self.__bot_nets - 2) * Clicker.__BASE_BOT_NET_COST
+
+    c = Clicker.__COST_CHANGER
+    x = self.__clickers
+    y = self.__bot_nets
+
+
+    try:
+      self.__clicker_sell = ceil(0.75 * (0.2*x*log(x,c)+1) * Clicker.__BASE_CLICKER_COST)
+    except ValueError:
+      self.__clicker_sell = "N/A"
+    try:
+      self.__bot_net_sell = ceil(0.75 * (0.2*y*log(y,c)+1) * Clicker.__BASE_BOT_NET_COST)
+    except ValueError:
+      self.__bot_net_sell = "N/A"
 
     self.__10_clicker_sell = 0
     self.__10_bot_net_sell = 0
     
     for count in range(10):
-      self.__10_clicker_sell += 0.75 * Clicker.__GROWTH_RATE ** (self.__clickers - count - 2) * Clicker.__BASE_CLICKER_COST
-      self.__10_bot_net_sell += 0.75 * Clicker.__GROWTH_RATE ** (self.__bot_nets - count - 2) * Clicker.__BASE_BOT_NET_COST
-
+      try:
+        self.__10_clicker_sell += ceil(0.75 * (0.2*x*log(x-count,c)+1) * Clicker.__BASE_CLICKER_COST)
+      except ValueError:
+        self.__10_clicker_sell = "N/A"
+      try:
+        self.__10_bot_net_sell += ceil(0.75 * (0.2*y*log(y-count,c)+1) * Clicker.__BASE_BOT_NET_COST)
+      except ValueError:
+        self.__10_bot_net_sell = "N/A"
 
 if __name__ == "__main__":
   a = Clicker()
   a.run()
+  exit(0)
