@@ -8,12 +8,15 @@ from kivy.clock import Clock
 from random import choice
 from math import ceil
 
+import sys
+import os
+
 class Cell(BoxLayout):
 
     def __init__(self, image, parent):
         super(Cell, self).__init__()
         self.image_id = image
-        self.image = Image(source=f"assets/{self.image_id}.png")
+        self.image = Image(source=f"assets/{self.image_id}")
         self.button = Button()
         self.button.bind(on_press=self.cellClicked)
         self.add_widget(self.button)
@@ -46,29 +49,28 @@ class Cell(BoxLayout):
 
 class Memory(App):
 
-    IMAGES = {
-        1:"BloodKelpNorth",
-        2:"CrashZoneMesa",
-        3:"CrystalCaves",
-        4:"Dunes",
-        5:"FabricatorCaverns",
-        6:"LostRiver",
-        7:"MushroomForestEast",
-        8:"TreeSpires",
-    }
+    def generateImages(self):
+        dic = {}
+        files = os.listdir(self.path + "/assets")
+        for index in range(len(files)):
+            dic[index+1] = files[index]
+        return dic
+
 
     def __init__(self):
         super(Memory, self).__init__()
         self.shown_cells = []
         self.correct_pairs = 0
+        self.path = sys.path[0]
+        self.images = self.generateImages()
 
     def build(self):
         cells = []
-        images_left = list(Memory.IMAGES.keys())*2
+        images_left = list(self.images.keys())*2
         while len(images_left) > 0:
             value = choice(images_left)
             images_left.remove(value)
-            cells.append(Cell(Memory.IMAGES[value], self))
+            cells.append(Cell(self.images[value], self))
         
         grid = GridLayout(cols=ceil(len(cells)**0.5))
         for cell in cells:
@@ -86,7 +88,7 @@ class Memory(App):
                 cell1.correct = True
                 cell2.correct = True
                 self.correct_pairs += 1
-                if self.correct_pairs == len(Memory.IMAGES):
+                if self.correct_pairs == len(self.images):
                     Clock.schedule_once(self.stop, 3)
             else:
                 Clock.schedule_once(self.shown_cells[0].hide, 1)
