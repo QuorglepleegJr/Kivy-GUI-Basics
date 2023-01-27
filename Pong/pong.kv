@@ -25,18 +25,23 @@
             size: 10, self.height
     
     Label:
-        id: p1_score
         font_size: 70
         center_x: root.width / 4
         top: root.top - 50
         text: str(root.p1.score)
     
     Label:
-        id: p2_score
         font_size: 70
         center_x: root.width * 3/4
         top: root.top - 50
         text: str(root.p2.score)
+
+    Label:
+        font_size: 210
+        center_x: root.center_x
+        center_y: root.center_y
+        text: root.paused_text
+        bold: True
     
     PongBall:
         id: pong_ball

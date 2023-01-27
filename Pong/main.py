@@ -1,7 +1,7 @@
 from kivy.app import App
 from kivy.uix.widget import Widget
 from kivy.properties import NumericProperty, \
-    ReferenceListProperty, ObjectProperty
+    ReferenceListProperty, ObjectProperty, StringProperty
 from kivy.vector import Vector
 from kivy.clock import Clock
 from random import randint
@@ -27,7 +27,7 @@ class PongBall(Widget):
     y_vel = NumericProperty(0)
     vel = ReferenceListProperty(x_vel, y_vel)
 
-    def move(self, _delta):
+    def move(self):
         self.pos = Vector(*self.vel) + self.pos
 
 
@@ -36,10 +36,12 @@ class PongGame(Widget):
     BALL_SPEED = 4
     BASE_BALL_SPEED_UP = 0.075
     PADDLE_MOVE = 5
+    PAUSE_FLASH = 0.5
 
     ball = ObjectProperty(None)
     p1 = ObjectProperty(None)
     p2 = ObjectProperty(None)
+    paused_text = StringProperty("")
 
     def initialise(self):
 
@@ -52,31 +54,48 @@ class PongGame(Widget):
         self.p2_up = False
         self.p1_down = False
         self.p2_down = False
-    
+        self.paused = False
+        self.pause_flash_countdown = 0
     def update(self, delta):
+        
+        if not self.paused and Window.focus:
 
-        self.ball.move(delta)
+            self.paused_text = ""
+            self.pause_flash_countdown = 0
 
-        if self.ball.y < 0 or self.ball.top > self.height:
-            self.ball.y_vel *= -1
-        if self.ball.x < 0:
-            self.p2.score += 1
-            self.reset_ball(0)
-        if self.ball.x > self.width:
-            self.p1.score += 1
-            self.reset_ball(1)
+            self.ball.move()
 
-        if self.p1_up:
-            self.p1.center_y += PongGame.PADDLE_MOVE
-        if self.p1_down:
-            self.p1.center_y -= PongGame.PADDLE_MOVE
-        if self.p2_up:
-            self.p2.center_y += PongGame.PADDLE_MOVE
-        if self.p2_down:
-            self.p2.center_y -= PongGame.PADDLE_MOVE
+            if self.ball.y < 0 or self.ball.top > self.height:
+                self.ball.y_vel *= -1
+            if self.ball.x < 0:
+                self.p2.score += 1
+                self.reset_ball(0)
+            if self.ball.x > self.width:
+                self.p1.score += 1
+                self.reset_ball(1)
 
-        PongGame.bounce_ball(self.p1, self.ball)
-        PongGame.bounce_ball(self.p2, self.ball)
+            if self.p1_up:
+                self.p1.center_y += PongGame.PADDLE_MOVE
+            if self.p1_down:
+                self.p1.center_y -= PongGame.PADDLE_MOVE
+            if self.p2_up:
+                self.p2.center_y += PongGame.PADDLE_MOVE
+            if self.p2_down:
+                self.p2.center_y -= PongGame.PADDLE_MOVE
+
+            PongGame.bounce_ball(self.p1, self.ball)
+            PongGame.bounce_ball(self.p2, self.ball)
+        
+        else:
+            if self.pause_flash_countdown <= 0:
+                self.pause_flash_countdown = PongGame.PAUSE_FLASH
+                if self.paused_text == "":
+                    self.paused_text = "PAUSED"
+                else:
+                    self.paused_text = ""
+            else:
+                self.pause_flash_countdown -= delta
+            
 
     def keyboard_closed(self):
         print("Lost keyboard")
@@ -92,6 +111,10 @@ class PongGame(Widget):
             self.p2_up = True
         if keycode[1] == "down":
             self.p2_down = True
+
+        if keycode[1] == "p":
+            self.paused = not self.paused
+
         return True
 
     def on_key_up(self, _keyboard, keycode):
