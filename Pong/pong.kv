@@ -1,5 +1,41 @@
 #:kivy 1.0.9
 
+<PongLengthUp>:
+    size: 50, 50
+    canvas:
+        Rectangle:
+            pos: self.x, self.y
+            size: 10, 50
+        Rectangle:
+            pos: self.x + self.width - 10, self.y
+            size: 10, 50
+        Rectangle:
+            pos: self.x, self.y + self.height - 10
+            size: 50, 10
+        Rectangle:
+            pos: self.x, self.y
+            size: 50, 10
+        Triangle:
+            points: self.center_x - 10, self.center_y - 10, self.center_x, self.center_y + 10, self.center_x + 10, self.center_y - 10
+
+<PongLengthDown>:
+    size: 50, 50
+    canvas:
+        Rectangle:
+            pos: self.x, self.y
+            size: 10, 50
+        Rectangle:
+            pos: self.x + self.width - 10, self.y
+            size: 10, 50
+        Rectangle:
+            pos: self.x, self.y + self.height - 10
+            size: 50, 10
+        Rectangle:
+            pos: self.x, self.y
+            size: 50, 10
+        Triangle:
+            points: self.center_x - 10, self.center_y + 10, self.center_x, self.center_y - 10, self.center_x + 10, self.center_y + 10
+
 <PongBall>:
     size: 50, 50
     canvas:
@@ -8,7 +44,7 @@
             size: self.size
 
 <PongPaddle>:
-    size: self.length, 200
+    size: 25, self.length
     canvas:
         Rectangle:
             pos: self.pos
@@ -18,11 +54,15 @@
     ball: pong_ball
     p1: player_1
     p2: player_2
+    length_up_1: p_length_up_1
+    length_down_1: p_length_down_1
+    length_up_2: p_length_up_2
+    length_down_2: p_length_down_2
 
     canvas:
-        Rectangle:
-            pos: self.center_x - 5, 0
-            size: 10, self.height
+        Ellipse:
+            pos: self.center_x - 5, self.center_y - 5
+            size: 10, 10
     
     Label:
         font_size: 70
@@ -56,3 +96,23 @@
         id: player_2
         x: root.width - self.width
         center_y: root.center_y
+
+    PongLengthUp:
+        id: p_length_up_1
+        x: -100
+        y: -100
+
+    PongLengthDown:
+        id: p_length_down_1
+        x: -100
+        y: -100
+
+    PongLengthUp:
+        id: p_length_up_2
+        x: -100
+        y: -100
+
+    PongLengthDown:
+        id: p_length_down_2
+        x: -100
+        y: -100
