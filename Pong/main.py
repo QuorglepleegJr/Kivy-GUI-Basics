@@ -36,14 +36,14 @@ class PongLengthUp(Widget):
                 if p1.size_mods == 0:
                     p1.length = PongPaddle.DEFAULT_LENGTH
                 else:
-                    p1.length += PongPaddle.DEFAULT_LENGTH / (3**(p1.size_mods))
+                    p1.length += PongPaddle.DEFAULT_LENGTH / (3**(abs(p1.size_mods)))
             if ball.x_vel < 0:
                 p2 = self.parent.p2
                 p2.size_mods += 1
                 if p2.size_mods == 0:
                     p2.length = PongPaddle.DEFAULT_LENGTH
                 else:
-                    p2.length += PongPaddle.DEFAULT_LENGTH / (3**(p2.size_mods))
+                    p2.length += PongPaddle.DEFAULT_LENGTH / (3**(abs(p2.size_mods)))
 
 class PongLengthDown(Widget):
     
