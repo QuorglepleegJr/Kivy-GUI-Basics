@@ -7,9 +7,6 @@ from kivy.clock import Clock
 from random import randint, choice
 from kivy.core.window import Window
 
-
-# TODO: FINISH BOOKLET'S CODE
-
 '''
 WIDGETS (DEFINED IN pong.kv)
 '''
@@ -17,55 +14,58 @@ WIDGETS (DEFINED IN pong.kv)
 class PongPaddle(Widget):
 
     DEFAULT_LENGTH = 200
+    SIZE_SCALER = 1/3
+    LERP_TOTAL = 5
 
     score = NumericProperty(0)
     score_label = ObjectProperty(None)
     size_mods = NumericProperty(0)
     length = NumericProperty(DEFAULT_LENGTH)
+    length_lerp = NumericProperty(DEFAULT_LENGTH)
+    lerp_counter = NumericProperty(0)
+
+    def calculate_length(mods):
+        a1 = PongPaddle.SIZE_SCALER
+        sn = a1 * (1 - (PongPaddle.SIZE_SCALER ** abs(mods))) / \
+                (1 - PongPaddle.SIZE_SCALER)
+        if mods > 0:
+            return PongPaddle.DEFAULT_LENGTH * (1 + sn)
+        elif mods < 0:
+            return PongPaddle.DEFAULT_LENGTH * (1 - sn)
+        else:
+            return PongPaddle.DEFAULT_LENGTH
 
 class PongLengthUp(Widget):
 
-    image = ObjectProperty(None)
-
     def collected(self, ball):
         if self.collide_widget(ball):
             self.pos = Vector(-100, -100)
             if ball.x_vel > 0:
-                p1 = self.parent.p1
-                p1.size_mods += 1
-                if p1.size_mods == 0:
-                    p1.length = PongPaddle.DEFAULT_LENGTH
-                else:
-                    p1.length += PongPaddle.DEFAULT_LENGTH / (3**(abs(p1.size_mods)))
-            if ball.x_vel < 0:
-                p2 = self.parent.p2
-                p2.size_mods += 1
-                if p2.size_mods == 0:
-                    p2.length = PongPaddle.DEFAULT_LENGTH
-                else:
-                    p2.length += PongPaddle.DEFAULT_LENGTH / (3**(abs(p2.size_mods)))
+                p = self.parent.p1
+            elif ball.x_vel < 0:
+                p = self.parent.p2
+            else:
+                raise ValueError("Ball velocity cannot be purely Y")
+
+            p.size_mods += 1
+            p.length = PongPaddle.calculate_length(p.size_mods)
+            p.length_lerp = p.length
 
 class PongLengthDown(Widget):
-    
-    image = ObjectProperty(None)
 
     def collected(self, ball):
         if self.collide_widget(ball):
             self.pos = Vector(-100, -100)
-            if ball.x_vel < 0:
-                p1 = self.parent.p1
-                p1.size_mods -= 1
-                if p1.size_mods == 0:
-                    p1.length = PongPaddle.DEFAULT_LENGTH
-                else:
-                    p1.length -= PongPaddle.DEFAULT_LENGTH / (3**(abs(p1.size_mods)))
             if ball.x_vel > 0:
-                p2 = self.parent.p2
-                p2.size_mods -= 1
-                if p2.size_mods == 0:
-                    p2.length = PongPaddle.DEFAULT_LENGTH
-                else:
-                    p2.length -= PongPaddle.DEFAULT_LENGTH / (3**(abs(p2.size_mods)))
+                p = self.parent.p2
+            elif ball.x_vel < 0:
+                p = self.parent.p1
+            else:
+                raise ValueError("Ball velocity cannot be purely Y")
+
+            p.size_mods -= 1
+            p.length = PongPaddle.calculate_length(p.size_mods)
+            p.length_lerp = p.length
 
 
 class PongBall(Widget):
@@ -229,7 +229,11 @@ class PongGame(Widget):
         self.p2.length = PongPaddle.DEFAULT_LENGTH
         self.p1.size_mods = 0
         self.p2.size_mods = 0
+        for p in self.powerups:
+            p.pos = Vector(-100, -100)
     
+    def lerp(a, b, t):
+        return a + (b-a) * t
 
     def bounce_ball(paddle, ball):
         if paddle.collide_widget(ball):
@@ -237,6 +241,15 @@ class PongGame(Widget):
             multiplier = randint(0, 2000) / 1000 * PongGame.BASE_BALL_SPEED_UP
             ball.vel = [x * (multiplier + 1) for x in ball.vel]
             ball.vel = Vector(*ball.vel).rotate(randint(-20, 20))
+            if paddle.length != PongPaddle.DEFAULT_LENGTH:
+                paddle.lerp_counter += 1
+                if paddle.lerp_counter >= PongPaddle.LERP_TOTAL:
+                    paddle.lerp_counter = 0
+                    paddle.size_mods = 0
+                    paddle.length = PongPaddle.DEFAULT_LENGTH
+                else:
+                    paddle.length = PongGame.lerp(paddle.length_lerp, \
+                            PongPaddle.DEFAULT_LENGTH, paddle.lerp_counter / PongPaddle.LERP_TOTAL)
 
     # Currently disabled in favor of keyboard input
 
