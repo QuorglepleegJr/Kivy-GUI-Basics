@@ -23,10 +23,6 @@ class PongPaddle(Widget):
     size_mods = NumericProperty(0)
     length = NumericProperty(DEFAULT_LENGTH)
 
-class PongPowerup(Widget):
-    
-    pass
-
 class PongLengthUp(Widget):
 
     image = ObjectProperty(None)
